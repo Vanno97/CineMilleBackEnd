@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: CineMille
+  datasource:
+    url: ${JDBC_URL}
+    username: ${JDBC_USER}
+    password: ${JDBC_PASS}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+logging:
+  file:
+    path: /cine-mille/log
+
+
+it:
+  micael:
+    vanini:
+      cinemille:
+        api-version: 1.0
+      excel:
+        origin-folder: /cine-mille/excels
+        destination-folder: /cine-mille/excels/parsed
