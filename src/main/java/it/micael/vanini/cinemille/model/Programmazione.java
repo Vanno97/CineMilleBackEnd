@@ -11,7 +11,7 @@ import java.util.Date;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "programmazioni")
+@Table(name = "programmazione")
 public class Programmazione implements Comparable<Programmazione> {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

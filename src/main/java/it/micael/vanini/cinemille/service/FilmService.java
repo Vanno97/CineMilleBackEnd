@@ -1,8 +1,9 @@
 package it.micael.vanini.cinemille.service;
 
+import it.micael.vanini.cinemille.exception.FilmNameNotFound;
+import it.micael.vanini.cinemille.exception.InvalidDateInterval;
 import it.micael.vanini.cinemille.model.Film;
 import it.micael.vanini.cinemille.model.Programmazione;
-import it.micael.vanini.cinemille.model.Sala;
 import it.micael.vanini.cinemille.model.repository.FilmRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,11 +16,9 @@ public class FilmService implements BaseService<Film, String> {
     private static final Logger LOGGER = LoggerFactory.getLogger(FilmService.class);
 
     private final FilmRepository filmRepository;
-    private final ProgrammazioneService programmazioneService;
 
-    public FilmService(FilmRepository filmRepository, ProgrammazioneService programmazioneService) {
+    public FilmService(FilmRepository filmRepository) {
         this.filmRepository = filmRepository;
-        this.programmazioneService = programmazioneService;
     }
 
     @Override
@@ -97,41 +96,88 @@ public class FilmService implements BaseService<Film, String> {
         return this.filmRepository.existsByNomeFilm(filmName);
     }
 
-    public Film getByFilmName(String filmName) {
+    public Film getByFilmName(String filmName) throws FilmNameNotFound {
         LOGGER.info("Trying to retrieve film with name {} from database", filmName);
         LOGGER.info("Checking if film with name {} exists", filmName);
         Optional<Film> film = this.filmRepository.findByNomeFilm(filmName);
         if (film.isPresent()) {
             LOGGER.info("Retrieved sala with name {} from database", filmName);
+            film.get().getProgrammazioni().sort(Programmazione::compareTo);
             return film.get();
         } else {
             LOGGER.error("Film with name {} not found", filmName);
-            //TODO: Gestire errore ed eccezione
-            return null;
+            throw new FilmNameNotFound();
         }
     }
 
-    public Film getByFilmNameAndImax(String filmName, boolean imax) {
+    public Film getByFilmNameAndImax(String filmName, boolean imax) throws FilmNameNotFound {
         LOGGER.info("Trying to retrieve film with name: {} and is imax: {} from database", filmName, imax);
         Film film = this.getByFilmName(filmName);
         LOGGER.info("Filtering only film that is projected on imax Sale? {}", imax);
         film.getProgrammazioni().removeIf(programmazione -> Boolean.compare(programmazione.getSala().isImax(), imax) != 0);
+        if (film.getProgrammazioni().isEmpty()) {
+            throw new FilmNameNotFound();
+        }
         return film;
     }
 
-    public List<Film> getAllByProgrammazione(Date startDate, Date endDate) {
-        LOGGER.info("Trying to retrieve all Programmazione for all film in the interval {} -- {}", startDate, endDate);
-        List<Programmazione> programmazioni = this.programmazioneService.getAllByDateInterval(startDate, endDate);
-        List<Film> film = this.filmRepository.findAllByProgrammazioni(programmazioni);
+    public List<Film> getAllByProgrammazione(Date startDate, Date endDate) throws InvalidDateInterval {
+        if ((startDate == null || endDate == null) || (startDate.after(endDate) || startDate.equals(endDate))) {
+            throw new InvalidDateInterval();
+        }
+        LOGGER.info("Trying to retrieve all Programmazione for all film in the interval {} -- {} from the database", startDate, endDate);
+        List<Film> film = this.filmRepository.findAllByProgrammazioniInRange(startDate, endDate);
+        for (Film f : film) {
+            f.getProgrammazioni().removeIf(p -> p.getDataOra().before(startDate) || p.getDataOra().after(endDate));
+            f.getProgrammazioni().sort(Programmazione::compareTo);
+        }
         LOGGER.info("Retrieved {} Programmazione from the database", film.size());
         return film;
     }
 
-    public List<Film> getAllByProgrammazioneAndFilmId(Date startDate, Date endDate, String filmId) {
-        return null;
+    public List<Film> getAllByProgrammazioneAndImax(Date startDate, Date endDate, boolean imax) throws InvalidDateInterval {
+        LOGGER.info("Trying to retrieve all Programmazione for all film in the interval {} -- {} from the database", startDate, endDate);
+        List<Film> film = this.getAllByProgrammazione(startDate, endDate);
+        if (imax) {
+            Iterator<Film> it = film.iterator();
+            while (it.hasNext()) {
+                Film f = it.next();
+                f.getProgrammazioni().removeIf(programmazione -> !programmazione.getSala().isImax());
+                if (f.getProgrammazioni().isEmpty()) {
+                    it.remove();
+                } else {
+                    f.getProgrammazioni().sort(Programmazione::compareTo);
+                }
+            }
+        }
+        LOGGER.info("Retrieved {} Programmazione from the database", film.size());
+        return film;
     }
 
-    public List<Film> getAllByProgrammazioneAndFilmName(Date startDate, Date endDate, String filmName) {
-        return null;
+    public Film getAllByProgrammazioneAndFilmName(Date startDate, Date endDate, String filmName) throws FilmNameNotFound, InvalidDateInterval {
+        if ((startDate == null || endDate == null) || (startDate.after(endDate) || startDate.equals(endDate))) {
+            throw new InvalidDateInterval();
+        }
+        LOGGER.info("Trying to retrieve all Programmazione for film {} in the interval {} -- {} from the database", filmName, startDate, endDate);
+        Optional<Film> film = this.filmRepository.findAllByNomeFilmProgrammazioniInRange(filmName, startDate, endDate);
+        if (film.isPresent()) {
+            film.get().getProgrammazioni().removeIf(p -> p.getDataOra().before(startDate) || p.getDataOra().after(endDate));
+            film.get().getProgrammazioni().sort(Programmazione::compareTo);
+            return film.get();
+        } else {
+            LOGGER.error("Film with name {} not found", filmName);
+            throw new FilmNameNotFound();
+        }
+    }
+
+    public Film getAllByProgrammazioneAndFilmNameAndImax(Date startDate, Date endDate, String filmName, boolean imax) throws FilmNameNotFound, InvalidDateInterval {
+        LOGGER.info("Trying to retrieve all Programmazione for film {} in the interval {} -- {} and is imax: {} from the database", filmName, startDate, endDate, imax);
+        Film film = this.getAllByProgrammazioneAndFilmName(startDate, endDate, filmName);
+        film.getProgrammazioni().removeIf(programmazione -> Boolean.compare(programmazione.getSala().isImax(), imax) != 0);
+        if (!film.getProgrammazioni().isEmpty()) {
+            return film;
+        } else {
+            throw new FilmNameNotFound();
+        }
     }
 }

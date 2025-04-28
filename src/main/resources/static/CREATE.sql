@@ -28,3 +28,10 @@ CREATE TABLE `film_programmazioni` (
     FOREIGN KEY (`film`) REFERENCES `film`(`id_film`) ON UPDATE CASCADE ON DELETE RESTRICT,
     FOREIGN KEY (`programmazione`) references `programmazione`(`id_programmazioni`) ON UPDATE CASCADE ON DELETE RESTRICT
 );
+
+CREATE TABLE `users` (
+    `user_id` CHAR(36),
+    `username` VARCHAR(255),
+    `password` VARCHAR(255),
+    PRIMARY KEY (`user_id`)
+);

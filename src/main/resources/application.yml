@@ -22,3 +22,5 @@ it:
       excel:
         origin-folder: /cine-mille/excels
         destination-folder: /cine-mille/excels/parsed
+    jwt:
+      secret: ${JWT_SECRET}

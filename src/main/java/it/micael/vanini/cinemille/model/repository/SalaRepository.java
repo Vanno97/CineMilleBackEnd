@@ -8,7 +8,10 @@ import java.util.Optional;
 
 public interface SalaRepository extends JpaRepository<Sala, String> {
     boolean existsByNomeSala(String nomeSala);
+
     boolean existsByIdSalaOrNomeSala(String idSala, String nomeSala);
+
     List<Sala> findAllByImax(boolean imax);
+
     Optional<Sala> findByNomeSala(String nomeSala);
 }

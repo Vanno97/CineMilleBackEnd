@@ -52,7 +52,7 @@ public class ExcelParser {
         this.saleService = saleService;
     }
 
-    @Scheduled
+    @Scheduled(cron = "0 0 1 * * MON", zone = "Europe/Rome")
     @Transactional
     public void parseExcel() {
         File originFolder = new File(excelOriginFolder);

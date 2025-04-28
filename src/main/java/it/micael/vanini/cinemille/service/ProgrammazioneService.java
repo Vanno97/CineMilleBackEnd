@@ -1,5 +1,6 @@
 package it.micael.vanini.cinemille.service;
 
+import it.micael.vanini.cinemille.exception.InvalidDateInterval;
 import it.micael.vanini.cinemille.model.Programmazione;
 import it.micael.vanini.cinemille.model.Sala;
 import it.micael.vanini.cinemille.model.repository.ProgrammazioniRepository;
@@ -95,7 +96,7 @@ public class ProgrammazioneService implements BaseService<Programmazione, String
         }
     }
 
-    public List<Programmazione> getAllByDateInterval(Date startDate, Date endDate) {
+    public List<Programmazione> getAllByDateInterval(Date startDate, Date endDate) throws InvalidDateInterval {
         LOGGER.info("Trying to retrive Programmazione in the date interval {} -- {}", startDate, endDate);
         LOGGER.info("Checking if date is correct");
         if (endDate.after(startDate)) {
@@ -105,8 +106,7 @@ public class ProgrammazioneService implements BaseService<Programmazione, String
             return programmazioni;
         } else {
             LOGGER.error("Cannot retrieve the list of Prgrammazione, the end date is before the start date");
-            //TODO: Gestire errore ed eccezzione
-            return null;
+            throw new InvalidDateInterval();
         }
     }
 
